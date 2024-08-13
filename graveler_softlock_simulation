@@ -1,0 +1,53 @@
+"""
+Based on https://www.youtube.com/watch?v=M8C8dHQE2Ro
+I tried to keep things simple and close to the original, so everyone could understand them
+"""
+import os
+import random
+from multiprocessing import Pool
+from time import time
+
+
+def multi_attempt(attempts):
+    maxi = 0
+    for _ in range(attempts):
+        ones = 0
+        for _ in range(231):
+            # Using random.random() instead of random.choice() was the biggest difference
+            if random.random() < 0.25:
+                ones += 1
+        maxi = max(maxi, ones)
+    return maxi
+
+
+# Toggle between an improved version of the original, and a multithreading version
+multi = True
+maxRolls = 1_000_000
+
+rolls = 0
+maxOnes = 0
+
+if __name__ == '__main__':
+    if not multi:
+        start = time()
+        maxOnes = multi_attempt(maxRolls)
+        rolls = maxRolls
+        end = time()
+
+    else:
+        results = []
+
+        start = time()
+        cores = os.cpu_count()
+        pool = Pool(cores)
+        
+        for _ in range(cores):
+            results.append(pool.apply_async(multi_attempt, (maxRolls//os.cpu_count(),)))
+            rolls += maxRolls//os.cpu_count()
+
+        maxOnes = max(map(lambda r: r.get(), results))
+        end = time()
+
+    print("Highest Ones Roll:", maxOnes)
+    print("Number of Roll Sessions: ", rolls)
+    print("Time Taken: ", end - start)
